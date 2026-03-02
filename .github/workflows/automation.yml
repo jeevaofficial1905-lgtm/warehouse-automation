@@ -20,7 +20,7 @@ jobs:
 
       - name: Install Libraries
         run: |
-          pip install pandas
+          pip install pandas openpyxl google-api-python-client google-auth
           pip install google-api-python-client
           pip install google-auth
 

@@ -60,6 +60,10 @@ for file in files:
 # WAREHOUSE CALCULATION
 # ==========================
 
+if len(dataframes) == 0:
+    print("No Increff reports found today. Automation stopped safely.")
+    exit()
+
 combined = pd.concat(dataframes, ignore_index=True)
 
 # Example calculation

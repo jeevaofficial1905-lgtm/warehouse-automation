@@ -19,7 +19,14 @@ jobs:
           python-version: "3.10"
 
       - name: Install Libraries
-        run: pip install pandas
+        run: |
+          pip install pandas
+          pip install google-api-python-client
+          pip install google-auth
+
+      - name: Create credentials file
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
 
       - name: Run Script
         run: python warehouse.py

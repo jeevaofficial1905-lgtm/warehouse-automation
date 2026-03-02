@@ -1,12 +1,13 @@
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
+import pandas as pd
 import io
 import os
 
-# ==============================
-# GOOGLE DRIVE AUTH
-# ==============================
+# ==========================
+# AUTHENTICATION
+# ==========================
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
@@ -17,32 +18,28 @@ creds = service_account.Credentials.from_service_account_file(
 
 service = build('drive', 'v3', credentials=creds)
 
-# ==============================
-# FOLDER ID (CHANGE THIS)
-# ==============================
+# ==========================
+# DRIVE FOLDER IDS
+# ==========================
 
-FOLDER_ID = "1OJwqqwkTqwITho8XaMitO39E509iV10S"
+INCREFF_FOLDER = "1OJwqqwkTqwITho8XaMitO39E509iV10S"
+OUTPUT_FOLDER = "1nTAlKWVEv6WozRb_Lcim75QTTKxuwKh2"
 
 DOWNLOAD_PATH = "downloads"
-
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
-# ==============================
-# LIST FILES
-# ==============================
+# ==========================
+# DOWNLOAD REPORTS
+# ==========================
 
 results = service.files().list(
-    q=f"'{FOLDER_ID}' in parents",
+    q=f"'{INCREFF_FOLDER}' in parents",
     fields="files(id, name)"
 ).execute()
 
 files = results.get('files', [])
 
-print("Files Found:", len(files))
-
-# ==============================
-# DOWNLOAD FILES
-# ==============================
+dataframes = []
 
 for file in files:
     request = service.files().get_media(fileId=file['id'])
@@ -54,6 +51,33 @@ for file in files:
     while not done:
         status, done = downloader.next_chunk()
 
-    print(f"Downloaded: {file['name']}")
+    print("Downloaded:", file['name'])
 
-print("Drive sync completed")
+    df = pd.read_excel(f"{DOWNLOAD_PATH}/{file['name']}")
+    dataframes.append(df)
+
+# ==========================
+# WAREHOUSE CALCULATION
+# ==========================
+
+combined = pd.concat(dataframes, ignore_index=True)
+
+# Example calculation
+combined["Available Stock"] = (
+    combined["Inward Qty"] -
+    combined["Dispatch Qty"]
+)
+
+combined["Shortage"] = (
+    combined["System Stock"] -
+    combined["Physical Stock"]
+)
+
+# ==========================
+# SAVE OUTPUT
+# ==========================
+
+output_file = "Warehouse_Output.xlsx"
+combined.to_excel(output_file, index=False)
+
+print("Warehouse calculation completed")
